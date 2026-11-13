@@ -9,51 +9,21 @@ port="5432"
 )
 cursor = conexao.cursor()
 
-#codigo
-alunos = []
-
+# Codigo
 def add_aluno():
-    print("\nADICIONAR ALUNO")
+    print("\nCADASTRAR ALUNO")
 
-    nome = input("Digite o nome do aluno: ").strip()
+    nome = input("Digite o nome do aluno: ")
+    idade = int(input("Digite a idade do aluno: "))
+    nota = float(input("Digite a nota do aluno: "))
 
-    while True:
-        try:
-            idade = int(input("Digite a idade do aluno: "))
-
-            if idade > 2:
-                break
-            else:
-                print("A idade deve ser maior que dois.")
-
-        except ValueError:
-            print("Digite uma idade válida.")
-
-    while True:
-        try:
-            nota = float(input("Digite a nota do aluno (0 a 10): "))
-
-            if 0 <= nota <= 10:
-                break
-            else:
-                print("A nota deve estar entre 0 e 10.")
-
-        except ValueError:
-            print("Digite uma nota válida.")
-
-    aluno = {
-        "nome": nome,
-        "idade": idade,
-        "nota": nota
-    }
     try:
         cursor.execute(
-        "INSERT INTO aluno (nome, idade, nota) VALUES (%s, %s, %s)",
-        (nome, idade, nota)
+            "INSERT INTO aluno (nome, idade, nota) VALUES (%s, %s, %s)",
+            (nome, idade, nota)
         )
 
         conexao.commit()
-
         print("Aluno cadastrado com sucesso!")
 
     except psycopg2.Error as erro:
@@ -63,17 +33,17 @@ def add_aluno():
 def listar_alunos():
     print("\nLISTA DE ALUNOS")
 
-cursor.execute("SELECT * FROM aluno")
-registros = cursor.fetchall()
+    cursor.execute("SELECT * FROM aluno")
+    registros = cursor.fetchall()
 
-if not registros:
-    print("Não há alunos cadastrados.")
+    if not registros:
+        print("Não há alunos cadastrados.")
 
-for aluno in registros:
-    print(f"ID: {aluno[0]}")
-    print(f"Nome: {aluno[1]}")
-    print(f"Idade: {aluno[2]} anos")
-    print(f"Nota: {aluno[3]:.1f}")
+    for aluno in registros:
+        print(f"ID: {aluno[0]}")
+        print(f"Nome: {aluno[1]}")
+        print(f"Idade: {aluno[2]} anos")
+        print(f"Nota: {aluno[3]:.1f}")
 
 def buscar_aluno():
     print("\nBUSCAR ALUNO")
@@ -133,20 +103,86 @@ def media_geral():
         media = resultado[0]
         print(f"A média geral das notas é: {media:.2f}")
 
+def atualizar_aluno():
+    print("\nATUALIZAR ALUNO")
+
+    try:
+        id_aluno = int(input("Digite o ID do aluno que deseja atualizar: "))
+    except ValueError:
+        print("Digite um ID válido.")
+        return
+
+    cursor.execute(
+        "SELECT * FROM alunos WHERE id = %s",
+        (id_aluno,)
+    )
+
+    aluno = cursor.fetchone()
+
+    if not aluno:
+        print("Aluno não encontrado.")
+        return
+
+    print("\nDados atuais do aluno:")
+    print(f"Nome: {aluno[1]}")
+    print(f"Idade: {aluno[2]}")
+    print(f"Nota: {aluno[3]}")
+
+    nome = input("\nDigite o novo nome: ").strip()
+
+    while True:
+        try:
+            idade = int(input("Digite a nova idade: "))
+
+            if idade > 2:
+                break
+            else:
+                print("A idade deve ser maior que dois.")
+
+        except ValueError:
+            print("Digite uma idade válida.")
+
+    while True:
+        try:
+            nota = float(input("Digite a nova nota (0 a 10): "))
+
+            if 0 <= nota <= 10:
+                break
+            else:
+                print("A nota deve estar entre 0 e 10.")
+
+        except ValueError:
+            print("Digite uma nota válida.")
+
+    try:
+        cursor.execute(
+            """UPDATE alunos
+               SET nome = %s, idade = %s, nota = %s
+               WHERE id = %s""",
+            (nome, idade, nota, id_aluno)
+        )
+
+        conexao.commit()
+
+        print("Aluno atualizado com sucesso!")
+
+    except psycopg2.Error as erro:
+        conexao.rollback()
+        print("Erro ao atualizar aluno:", erro)
 
 # Programa principal
 while True:
     print("\n")
     print("SISTEMA DE ALUNOS")
     print("\n")
-    print("1 = Adicionar aluno")
-    print("2 = Listar todos os alunos")
-    print("3 = Buscar aluno pelo nome")
-    print("4 = Remover aluno")
-    print("5 = Mostrar média geral das notas")
-    print("6 = Sair")
+    print("1 - Adicionar aluno")
+    print("2 - Listar todos os alunos")
+    print("3 - Buscar aluno pelo nome")
+    print("4 - Remover aluno")
+    print("5 - Mostrar média geral das notas")
+    print("6 - Atualizar dados do aluno")
+    print("7 - Sair")
     print("\n")
-
 
     opcao = input("Escolha uma opção: ")
 
@@ -166,11 +202,14 @@ while True:
         media_geral()
 
     elif opcao == "6":
+        atualizar_aluno()
+
+    elif opcao == "7":
         print("Programa será encerrado.")
         break
 
     else:
-        print("Opção inválida. Escolha uma das opções de 1 a 6.")
+        print("Opção inválida. Escolha uma das opções de 1 a 7.")
 
 cursor.close()
 conexao.close()
